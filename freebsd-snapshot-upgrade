@@ -1,0 +1,88 @@
+#!/bin/sh
+
+# Copyright (c) 2013 Gleb Kurtsou
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+ARCH="$(uname -m)/$(uname -p)"
+SNAPSHOT=$(uname -r)
+DATE=$(date "+%Y-%m-%d")
+HOST=ftp://ftp4.us.freebsd.org/pub/FreeBSD/snapshots
+DISTS="BASE"
+
+DIST_BASE="base.txz"
+DIST_LIB32="lib32.txz"
+
+DIRS_ETC_RC="etc/rc etc/rc.resume etc/rc.subr etc/rc.bsdextended etc/rc.firewall etc/rc.sendmail etc/rc.suspend etc/rc.initdiskless etc/rc.shutdown"
+DIRS_ETC="etc/rc.d etc/periodic etc/defaults $DIRS_ETC_RC"
+DIRS_BASE="bin sbin usr lib libexec $DIRS_ETC"
+DIRS_LIB32="usr"
+
+DIRS_SCHG="/lib /libexec /bin /sbin /usr/lib /usr/lib32 /usr/bin"
+
+if [ "$#" -gt 1 ]; then
+	echo "Usage: $(basename $0) [snapshot]"
+	exit 1
+elif [ "$#" -eq 1 ]; then
+	SNAPSHOT=$1
+fi
+
+DISTS=BASE
+case $ARCH in
+*64*)
+	DISTS="$DISTS LIB32"
+	;;
+esac
+
+
+TMPDIR=/tmp/freebsd-snapshot-$SNAPSHOT
+
+mkdir -p $TMPDIR || exit 1
+cd $TMPDIR
+for i in $DISTS; do
+	eval dist="\$DIST_$i"
+	echo $ARCH/$SNAPSHOT/$dist
+	fetch $HOST/$ARCH/$SNAPSHOT/$dist || exit 1
+done
+
+SCRIPT=$TMPDIR/snapshot-install
+echo "#!/rescue/sh" >$SCRIPT
+echo "mount -uw /" >>$SCRIPT
+find $DIRS_SCHG -flags schg |
+	while read i; do
+		[ -f $i ] && echo /rescue/chflags noschg $i >>$SCRIPT
+	done
+
+for i in $DISTS; do
+	eval dist="\$DIST_$i"
+	eval dir="\$DIRS_$i"
+	echo "/rescue/tar -xpU -C / -f $TMPDIR/$dist $dir" >>$SCRIPT
+done
+
+chmod +x $SCRIPT
+
+# extract etc for merging
+rm -rf $TMPDIR/etc
+tar -xp -C $TMPDIR -f $TMPDIR/$DIST_BASE etc
+
+echo "Installation script: $SCRIPT"
