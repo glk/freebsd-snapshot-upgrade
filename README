@@ -1,0 +1,18 @@
+freebsd-snapshot-upgrade
+
+Instructions on performing upgrade using FreeBSD snapshots:
+
+1. Download recent snapshot, optionally specifying version:
+# freebsd-snapshot-upgrade
+or
+# freebsd-snapshot-upgrade 9.1-STABLE
+
+Utility will create installation script under /tmp, e.g.
+/tmp/freebsd-snapshot-9.1-STABLE/snapshot-install
+
+2. Boot into single user and install new snapshot:
+# shutdown now
+# /tmp/freebsd-snapshot-XXX/snapshot-install
+
+3. Merge configuration. New snapshot /etc is available under
+/tmp/freebsd-snapshot-XXX/etc
