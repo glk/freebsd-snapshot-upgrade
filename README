@@ -1,8 +1,13 @@
 freebsd-snapshot-upgrade
 
-Instructions on performing upgrade using FreeBSD snapshots:
+Instructions on performing base system upgrade using FreeBSD snapshots:
 
-1. Download recent snapshot, optionally specifying version:
+1. Don't forget to check /usr/src/UPDATING and run perform pre-build
+configuration merge:
+# mergemaster -p
+
+
+2. Download recent snapshot, optionally specifying version:
 # freebsd-snapshot-upgrade
 or
 # freebsd-snapshot-upgrade 9.1-STABLE
@@ -10,9 +15,19 @@ or
 Utility will create installation script under /tmp, e.g.
 /tmp/freebsd-snapshot-9.1-STABLE/snapshot-install
 
-2. Boot into single user and install new snapshot:
+
+3. Boot into single user and install new snapshot:
 # shutdown now
 # /tmp/freebsd-snapshot-XXX/snapshot-install
 
-3. Merge configuration. New snapshot /etc is available under
-/tmp/freebsd-snapshot-XXX/etc
+Kernel will NOT be upgraded.
+
+Note that snapshot-install script overwrites number of files under /etc
+that should not to be edited by user, e.g. /etc/defaults, /etc/rc.d,
+/etc/periodic, /etc/mtree.
+
+
+4. Merge configuration. New snapshot of /etc is available under
+/tmp/freebsd-snapshot-XXX/temproot/etc.
+
+# mergemaster -r -t /tmp/freebsd-snapshot-XXX/temproot

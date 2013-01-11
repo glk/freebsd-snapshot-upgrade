@@ -34,7 +34,7 @@ DIST_BASE="base.txz"
 DIST_LIB32="lib32.txz"
 
 DIRS_ETC_RC="etc/rc etc/rc.resume etc/rc.subr etc/rc.bsdextended etc/rc.firewall etc/rc.sendmail etc/rc.suspend etc/rc.initdiskless etc/rc.shutdown"
-DIRS_ETC="etc/rc.d etc/periodic etc/defaults $DIRS_ETC_RC"
+DIRS_ETC="etc/rc.d etc/periodic etc/defaults etc/mtree $DIRS_ETC_RC"
 DIRS_BASE="bin sbin usr lib libexec $DIRS_ETC"
 DIRS_LIB32="usr"
 
@@ -82,7 +82,9 @@ done
 chmod +x $SCRIPT
 
 # extract etc for merging
-rm -rf $TMPDIR/etc
-tar -xp -C $TMPDIR -f $TMPDIR/$DIST_BASE etc
+rm -rf $TMPDIR/temproot
+mkdir $TMPDIR/temproot
+tar -xp -C $TMPDIR/temproot -f $TMPDIR/$DIST_BASE etc
 
 echo "Installation script: $SCRIPT"
+echo "Merge configuration: mergemaster -r -t $TMPDIR/temproot"
